@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Editable TreeGrid - jQuery EasyUI Demo</title>
+	<link rel="stylesheet" type="text/css" href="/baseSys/static/jquery-easyui-1.3.5/themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="/baseSys/static/jquery-easyui-1.3.5/themes/icon.css">
+	<script type="text/javascript" src="/baseSys/static/jquery-easyui-1.3.5/jquery.min.js"></script>
+	<script type="text/javascript" src="/baseSys/static/jquery-easyui-1.3.5/jquery.easyui.min.js"></script>
+</head>
+<body>
+
+	<div style="margin:20px 0;">
+		<a href="javascript:void(0)" class="easyui-linkbutton" onclick="edit()">修改</a>
+		<a href="javascript:void(0)" class="easyui-linkbutton" onclick="save()">保存</a>
+		<a href="javascript:void(0)" class="easyui-linkbutton" onclick="cancel()">取消</a>
+
+		&nbsp; &nbsp; &nbsp;
+		<a href="javascript:void(0)" class="easyui-linkbutton" onclick="append()">新增</a>
+		<a href="javascript:void(0)" class="easyui-linkbutton" onclick="del()">删除</a>
+	</div>
+	<table id="tg" class="easyui-treegrid" title="Editable TreeGrid" style="width:700px;height:250px"
+			data-options="
+				iconCls: 'icon-ok',
+				rownumbers: true,
+				animate: true,
+				collapsible: true,
+				fitColumns: true,
+				url: '/baseSys/resource/list',
+				method: 'post',
+				idField: 'id',
+				treeField: 'name'
+			">
+		<thead>
+			<tr>
+				<th data-options="field:'name',width:180,editor:'text'">资源名称</th>
+				<th data-options="field:'type',width:60,align:'right',editor:'text'">资源类型</th>
+				<th data-options="field:'url',width:80,editor:'text'">资源路径</th>
+				<th data-options="field:'permission',width:80,editor:'text'">权限字符串</th>
+			</tr>
+		</thead>
+	</table>
+
+	<script type="text/javascript">
+
+		var editingId;
+		function edit(){
+		    console.log("edit:"+editingId);
+			if (editingId != undefined){
+				$('#tg').treegrid('select', editingId);
+				return;
+			}
+			var row = $('#tg').treegrid('getSelected');
+			if (row){
+				editingId = row.id
+				$('#tg').treegrid('beginEdit', editingId);
+			}
+		}
+		function save(){
+
+            console.log(".............."+editingId);
+            var t =  $('#tg');
+            t.treegrid('endEdit', editingId);
+            var node = t.treegrid('find',editingId);
+
+            var nodeid = node.id;
+            var type = node.type;
+            var permission = node.permission;
+            var url = node.url;
+            var name = node.name;
+
+            var parentNode = t.treegrid("getParent",editingId);
+            var pid = parentNode.id;
+
+
+
+            if (editingId != undefined){
+				var t = $('#tg');
+
+               // {type:type,permission:permission,url:url,name:name,parent_id:pid}
+                var i =  (editingId+"").indexOf("qq");
+                if(i != -1){
+                    console.log("..............新增")
+						// 新增
+                    $.ajax({
+                        type : "POST",
+						data : {type:type,permission:permission,url:url,name:name,parent_id:pid},
+                        url : "/baseSys/resource/appendChild",
+                        error : function(request) {
+                            alert("Connection error");
+                        },
+                        success : function(data) {
+                            $('#tg').treegrid('reload');
+                       //     t.treegrid('select', data);
+                        }
+                    });
+
+
+				}else{
+                    console.log("..............修改")
+
+                      // 修改
+                    $.ajax({
+                        type : "POST",
+                        url : "/baseSys/resource/update",
+                        data : {id:nodeid,type:type,permission:permission,url:url,name:name,parent_id:pid},
+                        error : function(request) {
+                            alert("Connection error");
+                        },
+                        success : function(data) {
+                            $('#tg').treegrid('reload');
+                            editingId = undefined;
+                        }
+                    });
+
+
+				}
+              //  t.treegrid('endEdit', editingId);
+
+
+
+
+			}
+		}
+		function cancel(){
+			if (editingId != undefined){
+				$('#tg').treegrid('cancelEdit', editingId);
+				editingId = undefined;
+			}
+		}
+
+        function guid() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+                return v.toString(16);
+            });
+        }
+
+		function append(){
+
+            var row = $('#tg').treegrid('getSelected');
+            if (row){
+                var nodeId = row.id;
+                var newid = nodeId+"qqq";
+
+                $('#tg').treegrid('append',{
+                    parent: nodeId,
+                    data:[{
+                        id:newid,
+                        name:'newname',
+						type:'newtype',
+						url:'newurl',
+                        permission:'newpermisson'
+                    }]
+                });
+                $('#tg').treegrid('select', newid);
+                editingId = newid;
+                $('#tg').treegrid('beginEdit', editingId);
+
+
+            }
+
+		}
+
+
+		function del(){
+            var row = $('#tg').treegrid('getSelected');
+            if (row){
+                editingId =  row.id;
+				console.log("editingId:"+editingId)
+
+                $.ajax({
+                    type : "POST",
+                    url : "/baseSys/resource/delete",
+                    data : {id:editingId},
+                    error : function(request) {
+                        alert("Connection error");
+                    },
+                    success : function(data) {
+                        $('#tg').treegrid('remove', editingId);
+                    }
+                });
+
+
+            }
+
+
+		}
+
+
+	</script>
+
+</body>
+</html>
